@@ -1,34 +1,26 @@
-import DestinationsModel from './model/destinations-model.js';
-import OffersModel from './model/offers-model.js';
-import PointsModel from './model/points-model.js';
+import { render } from './framework/render.js';
+import FiltersView from './view/filters-view.js';
+import BoardPresenter from './presenter/board-presenter.js';
+import TripPointsModel from './model/trip-point-model.js';
+import { getTripPoints, getDestinations, getOffersByType } from './mocks/trip-point.js';
+import { generateFilter } from './mocks/filter.js';
 
-import TripPresenter from './presenter/trip-presenter.js';
-import FilterPresenter from './presenter/filter-presenter.js';
-import FilterModel from './model/filter-model.js';
-import { getRandomFilter } from './mock/filter.js';
+const siteHeaderElement = document.querySelector('.trip-main');
+const siteMainElement = document.querySelector('.page-main');
 
+const tripPoints = getTripPoints();
+const offersByType = getOffersByType();
+const destinations = getDestinations();
 
-const filterContainer = document.querySelector('.trip-controls__filters');
-const tripContainer = document.querySelector('.trip-events');
+const tripPointsModel = new TripPointsModel();
 
-const destinationsModel = new DestinationsModel();
-const offersModel = new OffersModel();
-const pointsModel = new PointsModel(destinationsModel, offersModel);
-const filterModel = new FilterModel();
-filterModel.set(getRandomFilter());
+tripPointsModel.init(tripPoints, destinations, offersByType);
 
-const filterPresenter = new FilterPresenter({
-  container: filterContainer,
-  filterModel,
-  pointsModel,
-});
-const tripPresenter = new TripPresenter({
-  container: tripContainer,
-  destinationsModel,
-  offersModel,
-  pointsModel,
-  filterModel,
-});
+const boardPresenter = new BoardPresenter(siteMainElement.querySelector('.trip-events'), tripPointsModel);
 
-filterPresenter.init();
-tripPresenter.init();
+boardPresenter.init();
+
+const filters = generateFilter(tripPointsModel.tripPoints);
+
+render(new FiltersView({filters}), siteHeaderElement.querySelector('.trip-controls__filters'));
+
