@@ -1,6 +1,7 @@
 import TripPointView from '../view/trip-point-view.js';
 import EditingTripPointView from '../view/editing-trip-point-view.js';
 import { render, replace, remove } from '../framework/render.js';
+import { UserAction, UpdateType } from '../const.js';
 
 const Mode = {
   PREVIEW: 'preview',
@@ -39,12 +40,18 @@ export default class TripPointPresenter {
     const prevEditingTripPointComponent = this.#editingTripPointComponent;
 
     this.#previewTripPointComponent = new TripPointView(this.#tripPoint, this.#destinations, this.#offers);
-    this.#editingTripPointComponent = new EditingTripPointView(this.#tripPoint, this.#destinations, this.#offers);
+    this.#editingTripPointComponent = new EditingTripPointView({
+      tripPoint: this.#tripPoint,
+      destination: this.#destinations,
+      offers: this.#offers,
+      isNewTripPoint: false
+    });
 
     this.#previewTripPointComponent.setEditClickHandler(this.#handleEditClick);
     this.#previewTripPointComponent.setFavoriteClickHandler(this.#handleFavoriteClick);
     this.#editingTripPointComponent.setPreviewClickHandler(this.#handlePreviewClick);
     this.#editingTripPointComponent.setFormSubmitHandler(this.#handleFormSubmit);
+    this.#editingTripPointComponent.setResetClickHandler(this.#handleResetClick);
 
     if (prevPreviewTripPointComponent === null || prevEditingTripPointComponent === null) {
       render(this.#previewTripPointComponent, this.#tripPointsList);
@@ -97,7 +104,11 @@ export default class TripPointPresenter {
   };
 
   #handleFavoriteClick = () => {
-    this.#changeData({...this.#tripPoint, isFavorite: !this.#tripPoint.isFavorite});
+    this.#changeData(
+      UserAction.UPDATE_TRIP_POINT,
+      UpdateType.PATCH,
+      {...this.#tripPoint, isFavorite: !this.#tripPoint.isFavorite},
+    );
   };
 
   #handleEditClick = () => {
@@ -105,13 +116,24 @@ export default class TripPointPresenter {
   };
 
   #handlePreviewClick = () => {
-    this.#editingTripPointComponent.reset(this.#tripPoint);
+    this.resetView();
+  };
+
+  #handleFormSubmit = (tripPoint) => {
+    this.#changeData(
+      UserAction.UPDATE_TRIP_POINT,
+      UpdateType.MINOR,
+      tripPoint,
+    );
     this.#replaceEditingPointToPreviewPoint();
   };
 
-  #handleFormSubmit = (point) => {
-    this.#changeData(point);
-    this.#replaceEditingPointToPreviewPoint();
+  #handleResetClick = (tripPoint) => {
+    this.#changeData(
+      UserAction.DELETE_TRIP_POINT,
+      UpdateType.MINOR,
+      tripPoint,
+    );
   };
 }
 

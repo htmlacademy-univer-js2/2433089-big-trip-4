@@ -1,9 +1,20 @@
+import he from 'he';
 import dayjs from 'dayjs';
 import flatpickr from 'flatpickr';
 import 'flatpickr/dist/flatpickr.min.css';
 import AbstractStatefulView from '../framework/view/abstract-stateful-view.js';
-import { getDateTime } from '../utils.js';
+import { getDateTime } from '../utils/date-trip-point.js';
 import { TripPointType, TripPointTypeDescription } from '../const.js';
+
+const BLANK_TRIP_POINT = {
+  basePrice: 0,
+  dateFrom: dayjs(),
+  dateTo: dayjs(),
+  destinationId: 0,
+  isFavorite: false,
+  offerIds: [],
+  type: TripPointType.FLIGHT,
+};
 
 const renderDestinationPictures = (pictures) => pictures.length === 0 ? '' :
   pictures.map((picture) => `<img class="event__photo" src="${picture.src}" alt="${picture.description}">`).join('');
@@ -44,7 +55,7 @@ const renderEditingPointTypeTemplate = (currentType) => Object.values(TripPointT
 <label class="event__type-label  event__type-label--${type}" for="event-type-${type}-1">${TripPointTypeDescription[type]}</label>
 </div>`).join('');
 
-const createEditingTripPointTemplate = (tripPoint, destinations, offers) => {
+const createEditingTripPointTemplate = (tripPoint, destinations, offers, isNewTripPoint) => {
   const {basePrice, type, destinationId, dateFrom, dateTo, offerIds} = tripPoint;
   const allTripPointTypeOffers = offers.find((offer) => offer.type === type);
   return (
@@ -68,7 +79,7 @@ const createEditingTripPointTemplate = (tripPoint, destinations, offers) => {
           <label class="event__label  event__type-output" for="event-destination-${destinationId}">
           ${type}
           </label>
-          <input class="event__input  event__input--destination" id="event-destination-${destinationId}" type="text" name="event-destination" value="${destinations[destinationId].name}" list="destination-list-1">
+          <input class="event__input  event__input--destination" id="event-destination-${destinationId}" type="text" name="event-destination" value="${he.encode(destinations[destinationId].name)}" list="destination-list-1">
           <datalist id="destination-list-1">
             ${renderDestinationNames(destinations)}
           </datalist>
@@ -79,11 +90,12 @@ const createEditingTripPointTemplate = (tripPoint, destinations, offers) => {
             <span class="visually-hidden">Price</span>
             &euro;
           </label>
-          <input class="event__input  event__input--price" id="event-price-1" type="text" name="event-price" value="${basePrice}">
+          <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" min='0' value="${basePrice}">
         </div>
         <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
-        <button class="event__reset-btn" type="reset">Delete</button>
-        <button class="event__rollup-btn" type="button">
+        ${isNewTripPoint ? '<button class="event__reset-btn" type="reset">Cancel</button>' :
+      `<button class="event__reset-btn" type="reset">Delete</button>
+        <button class="event__rollup-btn" type="button">`}
           <span class="visually-hidden">Open event</span>
         </button>
       </header>
@@ -109,12 +121,14 @@ export default class EditingTripPointView extends AbstractStatefulView {
   #offers = null;
   #datepickerFrom = null;
   #datepickerTo = null;
+  #isNewTripPoint = null;
 
-  constructor(tripPoint, destination, offers) {
+  constructor({tripPoint = BLANK_TRIP_POINT, destination, offers, isNewTripPoint}) {
     super();
     this._state = EditingTripPointView.parseTripPointToState(tripPoint);
     this.#destination = destination;
     this.#offers = offers;
+    this.#isNewTripPoint = isNewTripPoint;
     this._restoreHandlers();
   }
 
@@ -132,13 +146,18 @@ export default class EditingTripPointView extends AbstractStatefulView {
   };
 
   get template() {
-    return createEditingTripPointTemplate(this._state, this.#destination, this.#offers);
+    return createEditingTripPointTemplate(this._state, this.#destination, this.#offers, this.#isNewTripPoint);
   }
 
   reset = (tripPoint) => {
     this.updateElement(
       EditingTripPointView.parseTripPointToState(tripPoint),
     );
+  };
+
+  setResetClickHandler = (callback) => {
+    this._callback.resetClick = callback;
+    this.element.querySelector('.event__reset-btn').addEventListener('click', this.#formResetClickHandler);
   };
 
   setPreviewClickHandler = (callback) => {
@@ -163,8 +182,7 @@ export default class EditingTripPointView extends AbstractStatefulView {
 
   _restoreHandlers = () => {
     this.#setInnerHandlers();
-    this.setFormSubmitHandler(this._callback.formSubmit);
-    this.setPreviewClickHandler(this._callback.previewClick);
+    this.#setOuterHandlers();
     this.#setDatepickerFrom();
     this.#setDatepickerTo();
   };
@@ -237,14 +255,15 @@ export default class EditingTripPointView extends AbstractStatefulView {
   #offersChangeHandler = (evt) => {
     evt.preventDefault();
     const offerId = Number(evt.target.id.slice(-1));
-    if (this._state.offerIds.includes(offerId)) {
-      this._state.offerIds = this._state.offerIds.filter((n) => n !== offerId);
+    const offerIds = this._state.offerIds.filter((n) => n !== offerId);
+    let currentOfferIds = [...this._state.offerIds];
+    if (offerIds.length !== this._state.offerIds.length) {
+      currentOfferIds = offerIds;
+    } else {
+      currentOfferIds.push(offerId);
     }
-    else {
-      this._state.offerIds.push(offerId);
-    }
-    this.updateElement({
-      offerIds: this._state.offerIds,
+    this._setState({
+      offerIds: currentOfferIds,
     });
   };
 
@@ -253,6 +272,19 @@ export default class EditingTripPointView extends AbstractStatefulView {
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#tripPointDestinationChangeHandler);
     this.element.querySelector('.event__available-offers').addEventListener('change', this.#offersChangeHandler);
     this.element.querySelector('.event__input--price').addEventListener('change', this.#tripPointPriceChangeHandler);
+  };
+
+  #setOuterHandlers = () => {
+    if (!this.#isNewTripPoint) {
+      this.setPreviewClickHandler(this._callback.previewClick);
+    }
+    this.setFormSubmitHandler(this._callback.formSubmit);
+    this.setResetClickHandler(this._callback.resetClick);
+  };
+
+  #formResetClickHandler = (evt) => {
+    evt.preventDefault();
+    this._callback.resetClick(EditingTripPointView.parseStateToTripPoint(this._state));
   };
 
   static parseTripPointToState = (tripPoint) => ({...tripPoint,
