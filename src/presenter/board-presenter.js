@@ -2,6 +2,7 @@ import SortingView from '../view/sorting-view.js';
 import { remove, render, RenderPosition} from '../framework/render.js';
 import TripPointListView from '../view/trip-point-list-view.js';
 import NoTripPointView from '../view/no-trip-point-view.js';
+import LoadingView from '../view/loading-view.js';
 import TripPointPresenter from './trip-point-presenter.js';
 import NewTripPointPresenter from './new-trip-point-presenter.js';
 import { sorting } from '../utils/sorting.js';
@@ -11,26 +12,41 @@ import { UpdateType, UserAction, SortType, FilterType } from '../const.js';
 export default class BoardPresenter {
   #tripContainer = null;
   #tripPointsModel = null;
+  #destinationsModel = null;
+  #offersModel = null;
   #filterModel = null;
 
   #currentSortType = SortType.DAY;
   #filterType = FilterType.EVERYTHING;
+  #isLoading = true;
 
   #tripPointsList = new TripPointListView();
   #sortComponent = null;
   #noTripPointComponent = null;
+  #loadingComponent = new LoadingView();
 
   #tripPointPresenter = new Map();
   #newTripPointPresenter = null;
 
-  constructor(tripContainer, tripPointsModel, filterModel) {
+  constructor({tripContainer, tripPointsModel, filterModel, destinationsModel, offersModel}) {
     this.#tripContainer = tripContainer;
     this.#tripPointsModel = tripPointsModel;
     this.#filterModel = filterModel;
+    this.#destinationsModel = destinationsModel;
+    this.#offersModel = offersModel;
 
-    this.#newTripPointPresenter = new NewTripPointPresenter(this.#tripPointsList.element, this.#tripPointsModel, this.#handleViewAction);
+    this.#newTripPointPresenter = new NewTripPointPresenter({
+      tripPointsList: this.#tripPointsList.element,
+      tripPointsModel: this.#tripPointsModel,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel,
+      changeData: this.#handleViewAction,
+    });
+
     this.#tripPointsModel.addObserver(this.#handleModelEvent);
     this.#filterModel.addObserver(this.#handleModelEvent);
+    this.#destinationsModel.addObserver(this.#handleModelEvent);
+    this.#offersModel.addObserver(this.#handleModelEvent);
   }
 
   get tripPoints() {
@@ -63,13 +79,13 @@ export default class BoardPresenter {
   #handleViewAction = (actionType, updateType, update) => {
     switch (actionType) {
       case UserAction.UPDATE_TRIP_POINT:
-        this.#tripPointsModel.updatePoint(updateType, update);
+        this.#tripPointsModel.updateTripPoint(updateType, update);
         break;
       case UserAction.ADD_TRIP_POINT:
-        this.#tripPointsModel.addPoint(updateType, update);
+        this.#tripPointsModel.addTripPoint(updateType, update);
         break;
       case UserAction.DELETE_TRIP_POINT:
-        this.#tripPointsModel.deletePoint(updateType, update);
+        this.#tripPointsModel.deleteTripPoint(updateType, update);
         break;
     }
   };
@@ -87,6 +103,12 @@ export default class BoardPresenter {
         this.#clearBoard({resetSortType: true});
         this.#renderBoard();
         break;
+      case UpdateType.INIT:
+        this.#isLoading = false;
+        remove(this.#loadingComponent);
+        remove(this.#noTripPointComponent);
+        this.#renderBoard();
+        break;
     }
   };
 
@@ -97,7 +119,14 @@ export default class BoardPresenter {
   };
 
   #renderTripPoint = (tripPoint) => {
-    const tripPointPresenter = new TripPointPresenter(this.#tripPointsList.element, this.#tripPointsModel, this.#handleViewAction, this.#handleModeChange);
+    const tripPointPresenter = new TripPointPresenter({
+      tripPointsList: this.#tripPointsList.element,
+      tripPointsModel: this.#tripPointsModel,
+      destinationsModel: this.#destinationsModel,
+      offersModel: this.#offersModel,
+      changeData: this.#handleViewAction,
+      changeMode: this.#handleModeChange,
+    });
     tripPointPresenter.init(tripPoint);
     this.#tripPointPresenter.set(tripPoint.id, tripPointPresenter);
   };
@@ -106,14 +135,18 @@ export default class BoardPresenter {
     tripPoints.forEach((tripPoint) => this.#renderTripPoint(tripPoint));
   };
 
+  #renderLoading = () => {
+    render(this.#loadingComponent, this.#tripContainer, RenderPosition.AFTERBEGIN);
+  };
+
   #renderNoTripPoints = () => {
     this.#noTripPointComponent = new NoTripPointView(this.#filterType);
     render(this.#noTripPointComponent, this.#tripContainer, RenderPosition.AFTERBEGIN);
   };
 
-  #renderTripPointList = () => {
+  #renderTripPointList = (tripPoints) => {
     render(this.#tripPointsList, this.#tripContainer);
-    this.#renderTripPoints(this.tripPoints);
+    this.#renderTripPoints(tripPoints);
   };
 
   #handleSortTypeChange = (sortType) => {
@@ -131,6 +164,7 @@ export default class BoardPresenter {
     this.#tripPointPresenter.clear();
 
     remove(this.#sortComponent);
+    remove(this.#loadingComponent);
 
     if (this.#noTripPointComponent) {
       remove(this.#noTripPointComponent);
@@ -142,6 +176,11 @@ export default class BoardPresenter {
   };
 
   #renderBoard = () => {
+    if (this.#isLoading) {
+      this.#renderLoading();
+      return;
+    }
+
     const tripPoints = this.tripPoints;
     const tripPointCount = tripPoints.length;
 
@@ -149,7 +188,7 @@ export default class BoardPresenter {
       this.#renderNoTripPoints();
       return;
     }
+    this.#renderTripPointList(tripPoints);
     this.#renderSort();
-    this.#renderTripPointList();
   };
 }

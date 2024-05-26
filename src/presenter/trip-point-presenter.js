@@ -11,6 +11,8 @@ const Mode = {
 export default class TripPointPresenter {
   #tripPointsList = null;
   #tripPointsModel = null;
+  #destinationsModel = null;
+  #offersModel = null;
 
   #destinations = null;
   #offers = null;
@@ -24,17 +26,19 @@ export default class TripPointPresenter {
   #tripPoint = null;
   #mode = Mode.PREVIEW;
 
-  constructor(tripPointsList, tripPointsModel, changeData, changeMode) {
+  constructor({tripPointsList, tripPointsModel, destinationsModel, offersModel, changeData, changeMode}) {
     this.#tripPointsList = tripPointsList;
     this.#tripPointsModel = tripPointsModel;
+    this.#destinationsModel = destinationsModel;
+    this.#offersModel = offersModel;
     this.#changeData = changeData;
     this.#changeMode = changeMode;
   }
 
   init (tripPoint) {
     this.#tripPoint = tripPoint;
-    this.#destinations = [...this.#tripPointsModel.destinations];
-    this.#offers = [...this.#tripPointsModel.offers];
+    this.#destinations = [...this.#destinationsModel.destinations];
+    this.#offers = [...this.#offersModel.offers];
 
     const prevPreviewTripPointComponent = this.#previewTripPointComponent;
     const prevEditingTripPointComponent = this.#editingTripPointComponent;
