@@ -1,3 +1,7 @@
+const AUTHORIZATION = 'Basic hIfpbpd204ffg4hf6';
+const END_POINT = 'https://21.objects.htmlacademy.pro/big-trip';
+
+
 const SortType = {
   DAY: 'day',
   EVENT: 'event',
@@ -48,6 +52,7 @@ const UpdateType = {
   PATCH: 'PATCH',
   MINOR: 'MINOR',
   MAJOR: 'MAJOR',
+  INIT: 'INIT',
 };
 
 const FilterType = {
@@ -57,4 +62,10 @@ const FilterType = {
   PAST: 'past'
 };
 
-export { SortType, SortTypeDescription, TripPointType, TripPointTypeDescription, UserAction, UpdateType, FilterType };
+const ApiServiceResponseMethod = {
+  GET: 'GET',
+  PUT: 'PUT'
+};
+
+export { SortType, SortTypeDescription, TripPointType, TripPointTypeDescription,
+  UserAction, UpdateType, FilterType, ApiServiceResponseMethod, AUTHORIZATION, END_POINT };
