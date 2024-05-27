@@ -40,7 +40,7 @@ const renderOffersContainer = (allOffers, checkedOffers, isDisabled) => (!allOff
     </div>
     </section>`;
 
-const renderEditingPointDateTemplate = (dateFrom, dateTo, isDisabled) => (
+const renderEditingTripPointDateTemplate = (dateFrom, dateTo, isDisabled) => (
   `<div class="event__field-group  event__field-group--time">
     <label class="visually-hidden" for="event-start-time-1">From</label>
     <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${getDateTime(dateFrom)} ${isDisabled ? 'disabled' : ''}">
@@ -50,7 +50,7 @@ const renderEditingPointDateTemplate = (dateFrom, dateTo, isDisabled) => (
   </div>`
 );
 
-const renderEditingPointTypeTemplate = (currentType, isDisabled) => Object.values(TripPointType).map((type) => `<div class="event__type-item">
+const renderEditingTripPointTypeTemplate = (currentType, isDisabled) => Object.values(TripPointType).map((type) => `<div class="event__type-item">
 <input id="event-type-${type}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${type}" ${currentType === type ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
 <label class="event__type-label  event__type-label--${type}" for="event-type-${type}-1">${TripPointTypeDescription[type]}</label>
 </div>`).join('');
@@ -96,7 +96,7 @@ const createEditingTripPointTemplate = (tripPoint, destinations, allOffers, isNe
           <div class="event__type-list">
             <fieldset class="event__type-group">
               <legend class="visually-hidden">Event type</legend>
-              ${renderEditingPointTypeTemplate(type, isDisabled)}
+              ${renderEditingTripPointTypeTemplate(type, isDisabled)}
             </fieldset>
           </div>
         </div>
@@ -111,7 +111,7 @@ const createEditingTripPointTemplate = (tripPoint, destinations, allOffers, isNe
             ${renderDestinationNames(destinations)}
           </datalist>
         </div>
-        ${renderEditingPointDateTemplate(dateFrom, dateTo, isDisabled)}
+        ${renderEditingTripPointDateTemplate(dateFrom, dateTo, isDisabled)}
         <div class="event__field-group  event__field-group--price">
           <label class="event__label" for="event-price-1">
             <span class="visually-hidden">Price</span>

@@ -1,11 +1,11 @@
 import { FilterType } from '../const';
-import { isPointDateFuture, isPointDatePresent, isPointDatePast } from './date-trip-point.js';
+import { isTripPointDateFuture, isTripPointDatePresent, isTripPointDatePast } from './date-trip-point.js';
 
 const filter = {
   [FilterType.EVERYTHING]: (tripPoints) => tripPoints,
-  [FilterType.FUTURE]: (tripPoints) => tripPoints.filter((tripPoint) => isPointDateFuture(tripPoint.dateFrom)),
-  [FilterType.PRESENT]: (tripPoints) => tripPoints.filter((tripPoint) => isPointDatePresent(tripPoint.dateFrom, tripPoint.dateTo)),
-  [FilterType.PAST]: (tripPoints) => tripPoints.filter((tripPoint) => isPointDatePast(tripPoint.dateTo)),
+  [FilterType.FUTURE]: (tripPoints) => tripPoints.filter((tripPoint) => isTripPointDateFuture(tripPoint.dateFrom)),
+  [FilterType.PRESENT]: (tripPoints) => tripPoints.filter((tripPoint) => isTripPointDatePresent(tripPoint.dateFrom, tripPoint.dateTo)),
+  [FilterType.PAST]: (tripPoints) => tripPoints.filter((tripPoint) => isTripPointDatePast(tripPoint.dateTo)),
 };
 
 export { filter };
