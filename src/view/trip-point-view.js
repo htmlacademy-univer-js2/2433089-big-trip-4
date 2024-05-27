@@ -15,9 +15,9 @@ const renderOffers = (allOffers, checkedOffers) => {
   return result;
 };
 
-const createtripPointTemplate = (tripPoint, destinations, allOffers) => {
+const createTripPointTemplate = (tripPoint, destinations, allOffers) => {
   const { basePrice, type, destination, isFavorite, dateFrom, dateTo, offers } = tripPoint;
-  const alltripPointTypeOffers = allOffers.find((offer) => offer.type === type);
+  const allTripPointTypeOffers = allOffers.find((offer) => offer.type === type);
   const eventDuration = getDuration(dateFrom, dateTo);
   const startDate = dateFrom !== null ? humanizeTripPointDueDate(dateFrom) : '';
   const endDate = dateTo !== null ? humanizeTripPointDueDate(dateTo) : '';
@@ -43,7 +43,7 @@ const createtripPointTemplate = (tripPoint, destinations, allOffers) => {
       </p>
       <h4 class="visually-hidden">Offers:</h4>
       <ul class="event__selected-offers">
-        ${renderOffers(alltripPointTypeOffers, offers)}
+        ${renderOffers(allTripPointTypeOffers, offers)}
       </ul>
       <button class="event__favorite-btn ${isFavorite ? 'event__favorite-btn--active' : ''}" type="button">
       <span class="visually-hidden">Add to favorite</span>
@@ -72,7 +72,7 @@ export default class TripPointView extends AbstractView{
   }
 
   get template() {
-    return createtripPointTemplate(this.#tripPoint, this.#destination, this.#offers);
+    return createTripPointTemplate(this.#tripPoint, this.#destination, this.#offers);
   }
 
   setEditClickHandler = (callback) => {

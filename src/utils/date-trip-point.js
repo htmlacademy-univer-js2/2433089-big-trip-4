@@ -36,11 +36,11 @@ const getTime = (date) => dayjs(date).format(TIME_FORMAT);
 
 const getDateTime = (date) => dayjs(date).format(DATE_TIME_FORMAT);
 
-const isPointDatePast = (dateTo) => dayjs().diff(dayjs(dateTo), 'minute') > 0;
+const isTripPointDatePast = (dateTo) => dayjs().diff(dayjs(dateTo), 'minute') > 0;
 
-const isPointDateFuture = (dateFrom) => dayjs(dateFrom).diff(dayjs(), 'minute') > 0;
+const isTripPointDateFuture = (dateFrom) => dayjs(dateFrom).diff(dayjs(), 'minute') > 0;
 
-const isPointDatePresent = (dateFrom, dateTo) => dayjs().diff(dayjs(dateFrom), 'minute') >= 0 && dayjs(dateTo).diff(dayjs(), 'minute') >= 0;
+const isTripPointDatePresent = (dateFrom, dateTo) => dayjs().diff(dayjs(dateFrom), 'minute') >= 0 && dayjs(dateTo).diff(dayjs(), 'minute') >= 0;
 
-export { humanizeTripPointDueDate, getDuration, getDate, getTime, getDateTime, isPointDatePast, isPointDateFuture, isPointDatePresent };
+export { humanizeTripPointDueDate, getDuration, getDate, getTime, getDateTime, isTripPointDatePast, isTripPointDateFuture, isTripPointDatePresent };
 

@@ -81,7 +81,7 @@ export default class TripPointPresenter {
   resetView = () => {
     if (this.#mode !== Mode.PREVIEW) {
       this.#editingTripPointComponent.reset(this.#tripPoint);
-      this.#replaceEditingPointToPreviewPoint();
+      this.#replaceEditingTripPointToPreviewPoint();
     }
   };
 
@@ -120,14 +120,14 @@ export default class TripPointPresenter {
     });
   };
 
-  #replacePreviewPointToEditingPoint = () => {
+  #replacePreviewTripPointToEditingPoint = () => {
     replace(this.#editingTripPointComponent, this.#previewTripPointComponent);
     document.addEventListener('keydown', this.#escKeyDownHandler);
     this.#changeMode();
     this.#mode = Mode.EDITING;
   };
 
-  #replaceEditingPointToPreviewPoint = () => {
+  #replaceEditingTripPointToPreviewPoint = () => {
     replace(this.#previewTripPointComponent, this.#editingTripPointComponent);
     document.removeEventListener('keydown', this.#escKeyDownHandler);
     this.#mode = Mode.PREVIEW;
@@ -150,7 +150,7 @@ export default class TripPointPresenter {
   };
 
   #handleEditClick = () => {
-    this.#replacePreviewPointToEditingPoint();
+    this.#replacePreviewTripPointToEditingPoint();
   };
 
   #handlePreviewClick = () => {
