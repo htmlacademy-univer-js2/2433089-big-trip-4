@@ -10,7 +10,7 @@ const BLANK_TRIP_POINT = {
   basePrice: 0,
   dateFrom: dayjs(),
   dateTo: dayjs(),
-  destination: 0,
+  destination: null,
   isFavorite: false,
   offers: [],
   type: TripPointType.FLIGHT,
@@ -23,8 +23,8 @@ const renderDestinationNames = (destinations) => destinations.length === 0 ? '' 
   destinations.map((destination) => `<option value="${destination.name}"></option>`).join('');
 
 
-const renderOffers = (allOffers, checkedOffers) => allOffers.map((offer) => `<div class="event__offer-selector">
-  <input class="event__offer-checkbox  visually-hidden" id="${offer.id}" type="checkbox" name="event-offer-luggage" ${checkedOffers.includes(offer.id) ? 'checked' : ''}>
+const renderOffers = (allOffers, checkedOffers, isDisabled) => allOffers.map((offer) => `<div class="event__offer-selector">
+  <input class="event__offer-checkbox  visually-hidden" id="${offer.id}" type="checkbox" name="event-offer-luggage" ${checkedOffers.includes(offer.id) ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
   <label class="event__offer-label" for="${offer.id}">
     <span class="event__offer-title">${offer.title}</span>
     &plus;&euro;&nbsp;
@@ -32,31 +32,31 @@ const renderOffers = (allOffers, checkedOffers) => allOffers.map((offer) => `<di
   </label>
 </div>`).join('');
 
-const renderOffersContainer = (allOffers, checkedOffers) => (!allOffers || allOffers.offers.length === 0) ? '' :
+const renderOffersContainer = (allOffers, checkedOffers, isDisabled) => (!allOffers || allOffers.offers.length === 0) ? '' :
   `<section class="event__section  event__section--offers">
     <h3 class="event__section-title  event__section-title--offers">Offers</h3>
     <div class="event__available-offers">
-    ${renderOffers(allOffers.offers, checkedOffers)}
+    ${renderOffers(allOffers.offers, checkedOffers, isDisabled)}
     </div>
     </section>`;
 
-const renderEditingPointDateTemplate = (dateFrom, dateTo) => (
+const renderEditingPointDateTemplate = (dateFrom, dateTo, isDisabled) => (
   `<div class="event__field-group  event__field-group--time">
     <label class="visually-hidden" for="event-start-time-1">From</label>
-    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${getDateTime(dateFrom)}">
+    <input class="event__input  event__input--time" id="event-start-time-1" type="text" name="event-start-time" value="${getDateTime(dateFrom)} ${isDisabled ? 'disabled' : ''}">
     &mdash;
     <label class="visually-hidden" for="event-end-time-1">To</label>
-    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${getDateTime(dateTo)}">
+    <input class="event__input  event__input--time" id="event-end-time-1" type="text" name="event-end-time" value="${getDateTime(dateTo)} ${isDisabled ? 'disabled' : ''}">
   </div>`
 );
 
-const renderEditingPointTypeTemplate = (currentType) => Object.values(TripPointType).map((type) => `<div class="event__type-item">
-<input id="event-type-${type}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${type}" ${currentType === type ? 'checked' : ''}>
+const renderEditingPointTypeTemplate = (currentType, isDisabled) => Object.values(TripPointType).map((type) => `<div class="event__type-item">
+<input id="event-type-${type}-1" class="event__type-input  visually-hidden" type="radio" name="event-type" value="${type}" ${currentType === type ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
 <label class="event__type-label  event__type-label--${type}" for="event-type-${type}-1">${TripPointTypeDescription[type]}</label>
 </div>`).join('');
 
 const renderDestinationContainer = (destination) => {
-  if (destination) {
+  if (destination && destination.description) {
     return `<section class="event__section  event__section--destination">
     <h3 class="event__section-title  event__section-title--destination">Destination</h3>
     <p class="event__destination-description">${destination.description !== null ? destination.description : ''}</p>
@@ -70,11 +70,17 @@ const renderDestinationContainer = (destination) => {
   return '';
 };
 
-const renderResetButtonTemplate = (isNewTripPoint) => isNewTripPoint ? '<button class="event__reset-btn" type="reset">Cancel</button>' : `<button class="event__reset-btn" type="reset">Delete</button>
+const renderResetButtonTemplate = (isNewTripPoint, isDisabled, isDeleting) => isNewTripPoint ? `<button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>Cancel</button>` :
+  `<button class="event__reset-btn" type="reset" ${isDisabled ? 'disabled' : ''}>${isDeleting ? 'Deleting...' : 'Delete'}</button>
   <button class="event__rollup-btn" type="button">`;
 
+const renderDetailsContainer = (destinationData, allTripPointTypeOffers, offers, isDisabled) => (destinationData && destinationData.description) || allTripPointTypeOffers.offers.length > 0 ? `<section class="event__details">
+${renderOffersContainer(allTripPointTypeOffers, offers, isDisabled)}
+${renderDestinationContainer(destinationData)}
+</section>` : '';
+
 const createEditingTripPointTemplate = (tripPoint, destinations, allOffers, isNewTripPoint) => {
-  const {basePrice, type, destination, dateFrom, dateTo, offers} = tripPoint;
+  const {basePrice, type, destination, dateFrom, dateTo, offers, isDisabled, isSaving, isDeleting} = tripPoint;
   const allTripPointTypeOffers = allOffers.find((offer) => offer.type === type);
   const destinationData = destinations.find((item) => item.id === destination);
   return (
@@ -86,11 +92,11 @@ const createEditingTripPointTemplate = (tripPoint, destinations, allOffers, isNe
             <span class="visually-hidden">Choose event type</span>
             <img class="event__type-icon" width="17" height="17" src="img/icons/${type}.png" alt="Event ${type} icon">
           </label>
-          <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox">
+          <input class="event__type-toggle  visually-hidden" id="event-type-toggle-1" type="checkbox" ${isDisabled ? 'disabled' : ''}>
           <div class="event__type-list">
             <fieldset class="event__type-group">
               <legend class="visually-hidden">Event type</legend>
-              ${renderEditingPointTypeTemplate(type)}
+              ${renderEditingPointTypeTemplate(type, isDisabled)}
             </fieldset>
           </div>
         </div>
@@ -98,28 +104,27 @@ const createEditingTripPointTemplate = (tripPoint, destinations, allOffers, isNe
           <label class="event__label  event__type-output" for="event-destination-${destination}">
           ${type}
           </label>
-          <input class="event__input  event__input--destination" id="event-destination-${destination}" type="text" name="event-destination" value="${destinationData ? he.encode(destinationData.name) : ''}" list="destination-list-1">
+          <input class="event__input  event__input--destination" id="event-destination-${destination}"
+          type="text" name="event-destination" value="${destinationData ? he.encode(destinationData.name) : ''}" list="destination-list-1" ${isDisabled ? 'disabled' : ''}
+          onfocus="this.value=''">
           <datalist id="destination-list-1">
             ${renderDestinationNames(destinations)}
           </datalist>
         </div>
-        ${renderEditingPointDateTemplate(dateFrom, dateTo)}
+        ${renderEditingPointDateTemplate(dateFrom, dateTo, isDisabled)}
         <div class="event__field-group  event__field-group--price">
           <label class="event__label" for="event-price-1">
             <span class="visually-hidden">Price</span>
             &euro;
           </label>
-          <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" min='0' value="${basePrice}">
+          <input class="event__input  event__input--price" id="event-price-1" type="number" name="event-price" min='0' value="${basePrice}" ${isDisabled ? 'disabled' : ''}>
         </div>
-        <button class="event__save-btn  btn  btn--blue" type="submit">Save</button>
-        ${renderResetButtonTemplate(isNewTripPoint)}
+        <button class="event__save-btn  btn  btn--blue" type="submit" ${isDisabled ? 'disabled' : ''}>${isSaving ? 'Saving...' : 'Save'}</button>
+        ${renderResetButtonTemplate(isNewTripPoint, isDisabled, isDeleting)}
           <span class="visually-hidden">Open event</span>
         </button>
       </header>
-      <section class="event__details">
-        ${renderOffersContainer(allTripPointTypeOffers, offers)}
-        ${renderDestinationContainer(destinationData)}
-      </section>
+      ${renderDetailsContainer(destinationData, allTripPointTypeOffers, offers, isDisabled)}
     </form>
   </li>`
   );
@@ -131,6 +136,7 @@ export default class EditingTripPointView extends AbstractStatefulView {
   #datepickerFrom = null;
   #datepickerTo = null;
   #isNewTripPoint = null;
+  #offersByType = null;
 
   constructor({tripPoint = BLANK_TRIP_POINT, destination, offers, isNewTripPoint}) {
     super();
@@ -138,6 +144,7 @@ export default class EditingTripPointView extends AbstractStatefulView {
     this.#destination = destination;
     this.#offers = offers;
     this.#isNewTripPoint = isNewTripPoint;
+    this.#offersByType = this.#offers.find((offer) => offer.type === this._state.type);
     this._restoreHandlers();
   }
 
@@ -207,6 +214,7 @@ export default class EditingTripPointView extends AbstractStatefulView {
   #tripPointTypeChangeHandler = (evt) => {
     evt.preventDefault();
     this._state.offers = [];
+    this.#offersByType = this.#offers.find((offer) => offer.type === evt.target.value);
     this.updateElement({
       type: evt.target.value,
     });
@@ -280,7 +288,11 @@ export default class EditingTripPointView extends AbstractStatefulView {
   #setInnerHandlers = () => {
     this.element.querySelector('.event__type-list').addEventListener('change', this.#tripPointTypeChangeHandler);
     this.element.querySelector('.event__input--destination').addEventListener('change', this.#tripPointDestinationChangeHandler);
-    this.element.querySelector('.event__available-offers').addEventListener('change', this.#offersChangeHandler);
+
+    if (this.#offersByType && this.#offersByType.offers.length > 0) {
+      this.element.querySelector('.event__available-offers').addEventListener('change', this.#offersChangeHandler);
+    }
+
     this.element.querySelector('.event__input--price').addEventListener('change', this.#tripPointPriceChangeHandler);
   };
 
@@ -300,10 +312,17 @@ export default class EditingTripPointView extends AbstractStatefulView {
   static parseTripPointToState = (tripPoint) => ({...tripPoint,
     dateTo: dayjs(tripPoint.dateTo).toDate(),
     dateFrom: dayjs(tripPoint.dateFrom).toDate(),
+    isDisabled: false,
+    isSaving: false,
+    isDeleting: false,
   });
 
   static parseStateToTripPoint = (state) => {
     const tripPoint = {...state};
+    delete tripPoint.isDisabled;
+    delete tripPoint.isSaving;
+    delete tripPoint.isDeleting;
+
     return tripPoint;
   };
 }

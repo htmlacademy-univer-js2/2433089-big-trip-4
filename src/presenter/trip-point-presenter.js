@@ -10,7 +10,6 @@ const Mode = {
 
 export default class TripPointPresenter {
   #tripPointsList = null;
-  #tripPointsModel = null;
   #destinationsModel = null;
   #offersModel = null;
 
@@ -26,9 +25,8 @@ export default class TripPointPresenter {
   #tripPoint = null;
   #mode = Mode.PREVIEW;
 
-  constructor({tripPointsList, tripPointsModel, destinationsModel, offersModel, changeData, changeMode}) {
+  constructor({tripPointsList, destinationsModel, offersModel, changeData, changeMode}) {
     this.#tripPointsList = tripPointsList;
-    this.#tripPointsModel = tripPointsModel;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
     this.#changeData = changeData;
@@ -67,7 +65,8 @@ export default class TripPointPresenter {
     }
 
     if (this.#mode === Mode.EDITING) {
-      replace(this.#editingTripPointComponent, prevEditingTripPointComponent);
+      replace(this.#previewTripPointComponent, prevEditingTripPointComponent);
+      this.#mode = Mode.PREVIEW;
     }
 
     remove(prevPreviewTripPointComponent);
@@ -84,6 +83,41 @@ export default class TripPointPresenter {
       this.#editingTripPointComponent.reset(this.#tripPoint);
       this.#replaceEditingPointToPreviewPoint();
     }
+  };
+
+  setSaving = () => {
+    if (this.#mode === Mode.EDITING) {
+      this.#editingTripPointComponent.updateElement({
+        isDisabled: true,
+        isSaving: true,
+      });
+    }
+  };
+
+  setDeleting = () => {
+    if (this.#mode === Mode.EDITING) {
+      this.#editingTripPointComponent.updateElement({
+        isDisabled: true,
+        isDeleting: true,
+      });
+    }
+  };
+
+  setAborting = () => {
+    if (this.#mode === Mode.PREVIEW) {
+      this.#previewTripPointComponent.shake();
+      return;
+    }
+
+    this.#editingTripPointComponent.shake(this.#resetFormState);
+  };
+
+  #resetFormState = () => {
+    this.#editingTripPointComponent.updateElement({
+      isDisabled: false,
+      isSaving: false,
+      isDeleting: false,
+    });
   };
 
   #replacePreviewPointToEditingPoint = () => {
@@ -129,7 +163,6 @@ export default class TripPointPresenter {
       UpdateType.MINOR,
       tripPoint,
     );
-    this.#replaceEditingPointToPreviewPoint();
   };
 
   #handleResetClick = (tripPoint) => {

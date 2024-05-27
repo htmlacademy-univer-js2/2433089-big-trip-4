@@ -1,16 +1,21 @@
-import SortingView from '../view/sorting-view.js';
+import UiBlocker from '../framework/ui-blocker/ui-blocker.js';
 import { remove, render, RenderPosition} from '../framework/render.js';
+import SortingView from '../view/sorting-view.js';
 import TripPointListView from '../view/trip-point-list-view.js';
 import NoTripPointView from '../view/no-trip-point-view.js';
 import LoadingView from '../view/loading-view.js';
+import NoAdditionalInfoView from '../view/no-additional-info-view.js';
 import TripPointPresenter from './trip-point-presenter.js';
 import NewTripPointPresenter from './new-trip-point-presenter.js';
+import TripInfoPresenter from './trip-info-presenter.js';
 import { sorting } from '../utils/sorting.js';
 import { filter } from '../utils/filter.js';
-import { UpdateType, UserAction, SortType, FilterType } from '../const.js';
+import { UpdateType, UserAction, SortType, FilterType, TimeLimit } from '../const.js';
 
 export default class BoardPresenter {
   #tripContainer = null;
+  #tripInfoContainer = null;
+
   #tripPointsModel = null;
   #destinationsModel = null;
   #offersModel = null;
@@ -19,16 +24,20 @@ export default class BoardPresenter {
   #currentSortType = SortType.DAY;
   #filterType = FilterType.EVERYTHING;
   #isLoading = true;
+  #uiBlocker = new UiBlocker(TimeLimit.LOWER_LIMIT, TimeLimit.UPPER_LIMIT);
 
   #tripPointsList = new TripPointListView();
   #sortComponent = null;
   #noTripPointComponent = null;
   #loadingComponent = new LoadingView();
+  #noAdditionalInfoComponent = new NoAdditionalInfoView();
 
   #tripPointPresenter = new Map();
   #newTripPointPresenter = null;
+  #tripInfoPresenter = null;
 
-  constructor({tripContainer, tripPointsModel, filterModel, destinationsModel, offersModel}) {
+  constructor({tripInfoContainer,tripContainer, tripPointsModel, filterModel, destinationsModel, offersModel}) {
+    this.#tripInfoContainer = tripInfoContainer;
     this.#tripContainer = tripContainer;
     this.#tripPointsModel = tripPointsModel;
     this.#filterModel = filterModel;
@@ -37,7 +46,6 @@ export default class BoardPresenter {
 
     this.#newTripPointPresenter = new NewTripPointPresenter({
       tripPointsList: this.#tripPointsList.element,
-      tripPointsModel: this.#tripPointsModel,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
       changeData: this.#handleViewAction,
@@ -76,18 +84,36 @@ export default class BoardPresenter {
     this.#tripPointPresenter.forEach((presenter) => presenter.resetView());
   };
 
-  #handleViewAction = (actionType, updateType, update) => {
+  #handleViewAction = async (actionType, updateType, update) => {
+    this.#uiBlocker.block();
+
     switch (actionType) {
       case UserAction.UPDATE_TRIP_POINT:
-        this.#tripPointsModel.updateTripPoint(updateType, update);
+        this.#tripPointPresenter.get(update.id).setSaving();
+        try {
+          await this.#tripPointsModel.updateTripPoint(updateType, update);
+        } catch(err) {
+          this.#tripPointPresenter.get(update.id).setAborting();
+        }
         break;
       case UserAction.ADD_TRIP_POINT:
-        this.#tripPointsModel.addTripPoint(updateType, update);
+        this.#newTripPointPresenter.setSaving();
+        try {
+          await this.#tripPointsModel.addTripPoint(updateType, update);
+        } catch(err) {
+          this.#newTripPointPresenter.setAborting();
+        }
         break;
       case UserAction.DELETE_TRIP_POINT:
-        this.#tripPointsModel.deleteTripPoint(updateType, update);
+        this.#tripPointPresenter.get(update.id).setDeleting();
+        try {
+          await this.#tripPointsModel.deleteTripPoint(updateType, update);
+        } catch(err) {
+          this.#tripPointPresenter.get(update.id).setAborting();
+        }
         break;
     }
+    this.#uiBlocker.unblock();
   };
 
   #handleModelEvent = (updateType, data) => {
@@ -98,6 +124,8 @@ export default class BoardPresenter {
       case UpdateType.MINOR:
         this.#clearBoard();
         this.#renderBoard();
+        this.#clearTripInfo();
+        this.#renderTripInfo();
         break;
       case UpdateType.MAJOR:
         this.#clearBoard({resetSortType: true});
@@ -106,10 +134,15 @@ export default class BoardPresenter {
       case UpdateType.INIT:
         this.#isLoading = false;
         remove(this.#loadingComponent);
-        remove(this.#noTripPointComponent);
         this.#renderBoard();
+        this.#renderTripInfo();
         break;
     }
+  };
+
+  #renderTripInfo = () => {
+    this.#tripInfoPresenter = new TripInfoPresenter(this.#tripInfoContainer, this.#destinationsModel, this.#offersModel);
+    this.#tripInfoPresenter.init(this.#tripPointsModel.tripPoints);
   };
 
   #renderSort = () => {
@@ -121,7 +154,6 @@ export default class BoardPresenter {
   #renderTripPoint = (tripPoint) => {
     const tripPointPresenter = new TripPointPresenter({
       tripPointsList: this.#tripPointsList.element,
-      tripPointsModel: this.#tripPointsModel,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
       changeData: this.#handleViewAction,
@@ -137,6 +169,10 @@ export default class BoardPresenter {
 
   #renderLoading = () => {
     render(this.#loadingComponent, this.#tripContainer, RenderPosition.AFTERBEGIN);
+  };
+
+  #renderNoAdditionalInfo = () => {
+    render(this.#noAdditionalInfoComponent, this.#tripContainer, RenderPosition.AFTERBEGIN);
   };
 
   #renderNoTripPoints = () => {
@@ -156,6 +192,10 @@ export default class BoardPresenter {
     this.#currentSortType = sortType;
     this.#clearBoard();
     this.#renderBoard();
+  };
+
+  #clearTripInfo = () => {
+    this.#tripInfoPresenter.destroy();
   };
 
   #clearBoard = ({resetSortType = false} = {}) => {
@@ -178,6 +218,11 @@ export default class BoardPresenter {
   #renderBoard = () => {
     if (this.#isLoading) {
       this.#renderLoading();
+      return;
+    }
+
+    if (this.#offersModel.offers.length === 0 || this.#destinationsModel.destinations.length === 0) {
+      this.#renderNoAdditionalInfo();
       return;
     }
 
