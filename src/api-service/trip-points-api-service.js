@@ -20,6 +20,28 @@ export default class TripPointsApiService extends ApiService {
     return parsedResponse;
   };
 
+  addTripPoint = async (tripPoint) => {
+    const response = await this._load({
+      url: 'points',
+      method: ApiServiceResponseMethod.POST,
+      body: JSON.stringify(this.#adaptToServer(tripPoint)),
+      headers: new Headers({'Content-Type': 'application/json'}),
+    });
+
+    const parsedResponse = await ApiService.parseResponse(response);
+
+    return parsedResponse;
+  };
+
+  deleteTripPoint = async (tripPoint) => {
+    const response = await this._load({
+      url: `points/${tripPoint.id}`,
+      method: ApiServiceResponseMethod.DELETE,
+    });
+
+    return response;
+  };
+
   #adaptToServer = (tripPoint) => {
     const adaptedTripPoint = {...tripPoint,
       'base_price': tripPoint.basePrice,

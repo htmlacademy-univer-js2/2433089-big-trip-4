@@ -64,8 +64,15 @@ const FilterType = {
 
 const ApiServiceResponseMethod = {
   GET: 'GET',
-  PUT: 'PUT'
+  PUT: 'PUT',
+  POST: 'POST',
+  DELETE: 'DELETE'
+};
+
+const TimeLimit = {
+  LOWER_LIMIT: 350,
+  UPPER_LIMIT: 1000,
 };
 
 export { SortType, SortTypeDescription, TripPointType, TripPointTypeDescription,
-  UserAction, UpdateType, FilterType, ApiServiceResponseMethod, AUTHORIZATION, END_POINT };
+  UserAction, UpdateType, FilterType, ApiServiceResponseMethod, AUTHORIZATION, END_POINT, TimeLimit };

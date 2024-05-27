@@ -1,9 +1,8 @@
-import { render } from './framework/render.js';
 import BoardPresenter from './presenter/board-presenter.js';
 import FilterPresenter from './presenter/filter-presenter.js';
+import NewTripPointButtonPresenter from './presenter/new-trip-point-button-presenter.js';
 import TripPointsModel from './model/trip-point-model.js';
 import FilterModel from './model/filter-model.js';
-import NewPointButtonView from './view/new-trip-point-button-view.js';
 import DestinationsModel from './model/destinations-model.js';
 import OffersModel from './model/offers-model.js';
 import TripPointsApiService from './api-service/trip-points-api-service.js';
@@ -27,6 +26,7 @@ const filterPresenter = new FilterPresenter({
 filterPresenter.init();
 
 const boardPresenter = new BoardPresenter({
+  tripInfoContainer: siteHeaderElement.querySelector('.trip-main__trip-info'),
   tripContainer: siteMainElement.querySelector('.trip-events'),
   tripPointsModel: tripPointsModel,
   filterModel: filterModel,
@@ -36,24 +36,19 @@ const boardPresenter = new BoardPresenter({
 
 boardPresenter.init();
 
-const newTripPointButtonComponent = new NewPointButtonView();
+const newTripPointButtonPresenter = new NewTripPointButtonPresenter({
+  newTripPointButtonContainer: siteHeaderElement,
+  destinationsModel: destinationsModel,
+  offersModel: offersModel,
+  boardPresenter: boardPresenter
+});
 
-const handleNewPointFormClose = () => {
-  newTripPointButtonComponent.element.disabled = false;
-};
-
-const handleNewTripPointButtonClick = () => {
-  boardPresenter.createTripPoint(handleNewPointFormClose);
-  newTripPointButtonComponent.element.disabled = true;
-};
-
+newTripPointButtonPresenter.init();
 
 offersModel.init().finally(() => {
   destinationsModel.init().finally(() => {
     tripPointsModel.init().finally(() => {
-      render(newTripPointButtonComponent, siteHeaderElement);
-      newTripPointButtonComponent.setClickHandler(handleNewTripPointButtonClick);
+      newTripPointButtonPresenter.renderNewTripPointButton();
     });
   });
 });
-
